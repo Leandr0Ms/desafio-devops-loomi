@@ -1,44 +1,42 @@
-name: CI/CD Deploy to EC2 (Production Ready)
+name: CI/CD - Deploy EKS
 
 on:
   push:
     branches:
-      - main  # dispara o deploy sempre que há push no main
+      - main
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  EKS_CLUSTER: ${{ secrets.EKS_CLUSTER }}
 
 jobs:
   deploy:
-    name: Deploy to EC2 Instance
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Clona o código da branch main
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout código
+      uses: actions/checkout@v4
 
-      # 2️⃣ Configura a conexão SSH (usando secrets)
-      - name: Configure SSH Access
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.EC2_PUBLIC_IP }} >> ~/.ssh/known_hosts
+    - name: Login na AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-      # 3️⃣ Copia os arquivos da aplicação para a EC2
-      - name: Sync files to EC2
-        run: |
-          rsync -avz --delete \
-            -e "ssh -i ~/.ssh/id_ed25519" \
-            ./ ubuntu@${{ secrets.EC2_PUBLIC_IP }}:/home/ubuntu/desafio-devops-loomi
+    - name: Login no ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
-      # 4️⃣ Conecta via SSH e recria os containers Docker
-      - name: Deploy Docker Compose on EC2
-        run: |
-          ssh -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
-          cd /home/ubuntu/desafio-devops-loomi
-          echo "--- Stopping old containers ---"
-          sudo docker compose down || true
-          echo "--- Building and starting new containers ---"
-          sudo docker compose up -d --build
-          echo "--- Deployment finished successfully ✅ ---"
-          EOF
+    - name: Build e Push da imagem
+      run: |
+        docker build -t $ECR_REPOSITORY:latest .
+        docker tag $ECR_REPOSITORY:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:latest
+        docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:latest
 
+    - name: Atualizar kubeconfig
+      run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+
+    - name: Aplicar deploy no EKS
+      run: kubectl apply -f k8s/desafio-app-deployment.yaml
