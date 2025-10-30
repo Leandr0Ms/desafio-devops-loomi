@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: desafio-app
+  labels:
+    app: desafio-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: desafio-app
+  template:
+    metadata:
+      labels:
+        app: desafio-app
+    spec:
+      containers:
+      - name: desafio-app
+        image: 320116407581.dkr.ecr.us-east-1.amazonaws.com/desafio-devops-loomi:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://fastapi:loomi123@desafio-loomi-db.ci5goy2mgeul.us-east-1.rds.amazonaws.com:5432/fastapi_db"
+      imagePullSecrets:
+      - name: regcred
+
