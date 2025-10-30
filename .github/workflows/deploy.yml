@@ -40,4 +40,8 @@ jobs:
       run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
 
     - name: Aplicar deploy no EKS
-      run: kubectl apply -f k8s/desafio-app-deployment.yaml
+      run: |
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+        kubectl rollout status deployment/desafio-app
+
