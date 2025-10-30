@@ -38,6 +38,10 @@ jobs:
 
     - name: Atualizar kubeconfig
       run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+    
+    - name: Configurar acesso ao cluster EKS
+      run: |
+        aws eks update-kubeconfig --name desafio-loomi-cluster --region us-east-1
 
     - name: Aplicar deploy no EKS
       run: |
