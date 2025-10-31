@@ -15,37 +15,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout código
+    - name: 📦 Checkout do código
       uses: actions/checkout@v4
 
-    - name: Login na AWS
+    - name: 🔐 Configurar credenciais AWS
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login no ECR
+    - name: 🐳 Login no Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build e Push da imagem
+    - name: 🧱 Build e Push da imagem Docker
       run: |
         docker build -t $ECR_REPOSITORY:latest -f app/docker/Dockerfile app
         docker tag $ECR_REPOSITORY:latest ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:latest
         docker push ${{ steps.login-ecr.outputs.registry }}/${ECR_REPOSITORY}:latest
 
-
-    - name: Atualizar kubeconfig
-      run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
-    
-    - name: Configurar acesso ao cluster EKS
+    - name: ☸️ Configurar acesso ao cluster EKS
       run: |
-        aws eks update-kubeconfig --name desafio-loomi-cluster --region us-east-1
+        aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
 
-    - name: Aplicar deploy no EKS
+    - name: 🚀 Aplicar deploy no EKS
       run: |
         kubectl apply -f k8s/deployment.yaml
         kubectl apply -f k8s/service.yaml
         kubectl rollout status deployment/desafio-app
 
+    - name: 🔍 Verificar pods em execução
+      run: |
+        kubectl get pods -o wide

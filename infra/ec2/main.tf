@@ -2,14 +2,16 @@
 # 🔧 DADOS DA REDE E AMI
 ########################################
 
-data "aws_vpc" "default" {
-  default = true
+# VPC usada pelo EKS e EC2
+data "aws_vpc" "main" {
+  id = "vpc-0280efeb976aaa4e7"
 }
+
 
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+    values = [data.aws_vpc.main.id]
   }
 
   filter {
@@ -49,7 +51,7 @@ resource "aws_key_pair" "devops" {
 resource "aws_security_group" "app_sg" {
   name        = "app-sg"
   description = "Allow SSH/HTTP/HTTPS"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = data.aws_vpc.main.id
 
   ingress {
     from_port   = 22
@@ -93,6 +95,29 @@ resource "aws_instance" "app" {
   tags                   = { Name = "desafio-app" }
 }
 
+# Subnet privada A (em us-east-1a)
+resource "aws_subnet" "private_a" {
+  vpc_id                  = "vpc-0280efeb976aaa4e7"
+  cidr_block              = "172.31.96.0/20"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = false
+  tags = {
+    Name = "private-a"
+  }
+}
+
+# Subnet privada B (em us-east-1b)
+resource "aws_subnet" "private_b" {
+  vpc_id                  = "vpc-0280efeb976aaa4e7"
+  cidr_block              = "172.31.112.0/20"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = false
+  tags = {
+    Name = "private-b"
+  }
+}
+
+
 ########################################
 # ☁️ MÓDULO RDS (PostgreSQL gerenciado)
 ########################################
@@ -104,8 +129,12 @@ module "rds" {
   db_name                = "fastapi_db"
   username               = "fastapi"
   password               = "loomi123"
-  subnet_ids             = ["subnet-02715a5c477cd14a5", "subnet-0e7fad756623e8b96"]
-  vpc_security_group_ids = ["sg-0d572d13781e35f92"] # SG do EKS
+
+  # Subnets privadas da VPC correta
+  subnet_ids             = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+
+  # SG da EC2 (que está na mesma VPC)
+  vpc_security_group_ids = ["sg-0c8b97161ed4195c4"]
 }
 
 ########################################
