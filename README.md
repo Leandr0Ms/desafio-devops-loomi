@@ -244,10 +244,6 @@ Configure os seguintes secrets no GitHub:
 - Usar bancos de dados em subnets privadas
 - Implementar logging e monitoramento
 
-## 📝 Licença
-
-Este projeto é um exemplo educacional para demonstração de práticas DevOps.
-
 ## 🤝 Contribuindo
 
 Este é um projeto de desafio/exemplo. Sinta-se livre para fazer fork e adaptar para suas necessidades!
@@ -255,4 +251,5 @@ Este é um projeto de desafio/exemplo. Sinta-se livre para fazer fork e adaptar 
 ---
 
 **Desenvolvido para demonstrar práticas DevOps**
+
 
